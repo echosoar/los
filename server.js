@@ -98,7 +98,10 @@ class Server {
 			this['_execFileType_' + ext]();
 		} else {
 			let ctp = this.extMap[ext] || 'text/plain';
-  			this.res.writeHead(200, {'Content-Type': ctp});
+  			this.res.writeHead(200, {
+				'Content-Type': ctp,
+				'Server': 'los by echosoar'
+			});
   			this.res.end(fs.readFileSync(this.fileAbsolutePath));
 		}
 	}

@@ -1,6 +1,34 @@
-## LOS
-LOS is a simple static file server. It can automatically open or close the CENTOS firewall port, it can also be installed locally as a development tool.
+### LOS
+Launch a Optimal Server.
 
-With the NPM link command, you can easily and quickly open a local server anywhere.
+------------
 
-© 2017 echosoar
+los的目标是让用户快速的启动一个最优秀的node资源服务器。
+
+los具有以下功能优势：
+
+1. 简单方便的路径映射配置，也就是我们常说的rewrite，比如访问 **/user/name.html** 映射到 **/los/welcome.html**
+2. 通过简单配置就可以使用的请求转发，如将 GET /a.html 的请求转发至www.baidu.com，并响应转发请求到的内容。
+3. 模板引擎支持，可配置依赖静态数据或从接口拿到的数据，支持query参数与body数据替换。
+4. 通过简单的配置，就可以让请求基于来源黑名单与白名单进行响应。
+5. 对于任何路径和不同的请求方法（均可通过正则匹配），跳过资源文件的判断，直接给出自定义的响应。
+6. 自定义失败请求响应，如资源文件不存在的时候可配置响应404、文件目录列表还是其他任何自定义的内容。
+7. 可通过各种插件来处理各个事件钩子的请求和数据。
+8. 可自定义记录哪些请求的日志信息。
+9. 轻量的临时数据存储，比如可配置将请求一个路径携带过来的数据，在接下来多长时间，或者接下来多少次请求时放入某个路径的资源请求的模板数据中，由此就可以实现简单的动态站点。
+10. 自动告警，当服务器资源达到某个临界值时自动向某个地方发送告警消息，并自动优化释放服务器资源。
+
+------------
+
+#### 1. 路径映射
+#### 2. 请求转发
+#### 3. 模板引擎
+#### 4. 请求黑白名单
+#### 5. 自定义响应配置
+#### 6. 失败控制
+#### 7. 插件机制
+#### 8. 服务日志
+#### 9. 临时数据存储
+#### 10. 服务告警
+
+© LOS by echosoar
