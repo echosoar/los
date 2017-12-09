@@ -10,6 +10,8 @@
 
 let cluster = require('cluster');
 let os = require('os');
+let http = require('http');
+let losProcessUsage = require('./core/processUsage.js');
 
 class Main {
   constructor(config) {
@@ -30,7 +32,9 @@ class Main {
   // 获取默认配置信息
   _getDefaultConfig() {
     return {
-      childNum: os.cpus().length // 子进程数量，默认为CPU核心数
+      childNum: os.cpus().length, // 子进程数量，默认为CPU核心数
+      httpPort: 80, // 默认http服务端口
+      httpsPort: 443 // 默认https服务端口
     };
   }
 
@@ -39,7 +43,7 @@ class Main {
 
   }
 
-  // 接受子进程
+  // 接受子进程消息
   childMessageExec(worker, msg) {
     switch(msg.type) {
       case 'start':
@@ -49,6 +53,7 @@ class Main {
       default:
         return;
     }
+    
     this.workersMap[worker.id].status = msg.type;
     this.workersMap[worker.id].lastUpdateTime = new Date() - 0;
   }
@@ -64,11 +69,27 @@ class Main {
       this.startChildFinder();
     }, this._childFinderTimeout);
   }
-
+  
+  // 子进程安全性校验，如果超时没有响应，那么自动kill掉然后重启服务
   childCheck(workerInfo) {
     if (workerInfo.status == 'exec') {
       console.log(workerInfo.id);
     }
+  }
+
+  // 请求分发，选择最合适的子进程去执行
+  /*
+    选择的逻辑为：
+    优先选择当前进程为start状态，如果都没有，那么选择cpu + mem占用较低的
+  */
+  requestToChild(type, request, response) { 
+    
+  }
+
+  // http服务
+  startHttpServer() {
+    this.httpServer = http.createServer(this.requestToChild.bind(this, 'http'));
+    this.httpServer.listen(this.config.httpPort);
   }
 
   // 初始化，创建主线程及子线程
@@ -87,10 +108,11 @@ class Main {
       }
 
       this.startChildFinder();
+      this.startHttpServer();
     } else {
       process.send({ type: 'start' }); // 子进程已开启，未运行
       // process.send({ type: 'exec' }); // 子进程正在执行处理操作
-      
+
       
     }
   }
