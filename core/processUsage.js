@@ -13,9 +13,7 @@ var exec = require('child_process').execSync;
 let processUsage = (pids, type) => {
   if (!pids || !pids.map) pids = [pids];
 
-  type = (type || '').split(' '); // p: pid / n: name / f: find / d: all usage data
-  
-  if (!type.length) return {};
+  type = (type || 'f').split(' '); // p: pid / n: name / f: find / d: all usage data
 
   let cmd = 'ps -A -o pid,pmem,pcpu,comm';
   let usageData = '';
@@ -23,7 +21,7 @@ let processUsage = (pids, type) => {
 
   if (type.indexOf('p')!=-1) usage.pid = {};
   if (type.indexOf('n')!=-1) usage.name = {};
-  if (type.indexOf('f')!=-1) usage.find = {};
+  if (type.indexOf('f')!=-1) usage.find = [];
 
   try {
     usageData = exec(cmd).toString().split("\n").join("|LOSSPLIT|");
@@ -39,7 +37,7 @@ let processUsage = (pids, type) => {
       if (usage.name) usage.name[name] = data;
 
       if (usage.find && (pids.indexOf(pid - 0) != -1 || pids.indexOf(pid) != -1)) {
-        usage.find[pid - 0] = data;
+        usage.find.push(data);
       }
 
     });
