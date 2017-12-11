@@ -64,11 +64,80 @@ LOS支持在各个事件节点上面通过插件处理请求，并且LOS的主�
 | ------------ | ------------ | ------------ |
 | True/False  | Bool  | 返回一个布尔值，代表请求在此是否已响应，如果已响应则不执行后续所有内容  |
 
+#### pathAnalysis 路径解析
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| path  | String  | 路径值  |
+| los | Object | LOS内置对象 |
 
- *  pathAnalysis 路径解析 (path: String) => path: String
- *  headAnalysis head参数解析 (head)
- *  queryAnalysis query参数解析 (queryObj:Object) => newQuerys: Object
- *  bodyAnalysis body解析 (body) => (body: Object) => body: Object
- *  
- *  fileRead 文件读取 (path:String) => file: Object : {fileName: String, fileExt: String, fileType: string, fileSize: Number, fileContent: String}
- *  head 生成响应头
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| path  | String  | 新的路径值  |
+
+
+#### headAnalysis head参数解析
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| head  | Object  | 请求头数据对象  |
+| los | Object | LOS内置对象 |
+
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| head  | Object  | 新的请求头数据对象  |
+
+#### queryAnalysis query参数解析
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| query  | Object  | query参数数据对象  |
+| los | Object | LOS内置对象 |
+
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| query  | Object  | 新的query参数数据对象  |
+
+#### bodyAnalysis body解析
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| body  | Object  | body数据对象  |
+| los | Object | LOS内置对象 |
+
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| body  | Object  | 新的body数据对象  |
+
+#### fileRead 文件读取
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| path  | String  | 文件路径  |
+| los | Object | LOS内置对象 |
+
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| file  | Object  | 文件数据对象，包含 {fileName: String - 文件名, fileExt: String - 文件扩展名, fileType: string - 文件MIME类型, fileSize: Number - 文件大小, fileContent: String - 文件内容} |
+
+#### fileFormat 文件解析
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| file  | Object  | 文件数据对象  |
+| los | Object | LOS内置对象 |
+
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| responentBody  | String or Other FileType | 响应内容 |
+
+#### head 生成响应头
+| 入参  | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| nowHead  | Object  | 当前响应头  |
+| los | Object | LOS内置对象 |
+
+|  出参 | 参数类型  | 参数意义  |
+| ------------ | ------------ | ------------ |
+| head  | Object  | 新的响应头 |
+
+
+## LOS内置对象
+
+LOS内置对象上面挂载者整个请求所有的数据，包括子进程信息、请求路径、请求数据、head头信息、读取的文件信息等，但是此对象不允许在插件中进行修改，插件中只有读取的权限。
+
+© 2017 echosoar
