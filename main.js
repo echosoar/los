@@ -6,15 +6,17 @@
  * 1. 配置合并
  * 2. 处理线程创建、保活及超时中断重启
  * 3. 接受请求，并选取合适的子进程进行处理
+ * 
+ * 为了防止子进程发生惊群，采取基于round-robin的模型
+ * 
  */ 
-
-
-
 
 let cluster = require('cluster');
 let os = require('os');
 let http = require('http');
-let losProcessUsage = require('./core/processUsage.js');
+let FunLosProcessUsage = require('./core/processUsage.js');
+let ClassLogger = require('./core/logger.js');
+let TCP = process.binding('tcp_wrap').TCP;
 
 class Main {
   constructor(config) {
@@ -24,6 +26,8 @@ class Main {
       this._getDefaultConfig(),
       this._getLocalConfig(),
       config );
+
+    this.logger = new ClassLogger(this.config);
 
     this._childFinderTimeout = 200; // 子进程监控间隔
 
@@ -91,13 +95,21 @@ class Main {
   
   requestToChild(type, request, response) { 
     let retryCount = 0;
-    let worker = this.selectChild(retryCount);
+    let handle = this.httpServer;
+    let workerObj = this.selectChild(retryCount, handle);
 
-    if (!worker) {
+    if (!workerObj) {
+      this.logger.log('noUsageWorker');
+
       response.writeHead(503, { Server: this.version });
       response.end('503\nPowered by ' + this.version);
     } else {
+      this.logger.log('startChild', 'workid:' + workerObj.worker.id);
 
+      workerObj.worker.process.send({
+        type: 'net.Native',
+        workid: workerObj.worker.id,
+      },  handle);
     }
   }
 
@@ -110,13 +122,11 @@ class Main {
 
     后续可能会对此进行优化，如根据剩余可占用CPU和MEM来创建新的子进程等
   */
-  selectChild(retryCount) {
+  selectChild(retryCount, handle) {
     let workerPids = [];
     let workerPidsMap = {};
 
     let average = 80/ (this.workers.length + 1);
-
-    return false;
 
     for (let i = 0, len = this.workers.length; i < len; i ++) {
 
@@ -125,11 +135,14 @@ class Main {
       workerPidsMap[this.workers[i].worker.process.pid] = i;
 
       if (this.workers[i].status == 'starts') {
-        return this.workers[i];
+        return {
+          worker: this.workers[i].worker,
+          handle
+        };
       }
     }
 
-    let usage = losProcessUsage(workerPids).find.filter(child => {
+    let usage = FunLosProcessUsage(workerPids).find.filter(child => {
       return child.mem <= average && child.cpu <= average;
     }).sort((a , b) => {
       return (a.mem + a.cpu) - (b.mem + b.cpu);
@@ -137,10 +150,19 @@ class Main {
 
     if (usage && usage.length) {
       let usageIndex = workerPidsMap[usage[0].pid];
-      return this.workers[usageIndex];
+      return {
+        worker: this.workers[usageIndex].worker,
+        handle
+      };
     }
 
-
+    if (retryCount >= 5) {
+      return false;
+    } else {
+      setTimeout(() => {
+        this.selectChild( ++retryCount, handle );
+      }, 20);
+    }
   }
 
   // http服务
@@ -186,9 +208,11 @@ class Main {
       this.startHttpServer();
     } else {
       process.send({ type: 'start' }); // 子进程已开启，未运行
-      // process.send({ type: 'exec' }); // 子进程正在执行处理操作
-
-      
+      process.on('message', (msg, handle) => {
+        // handle.response.writeHead(200);
+        // handle.response.end('ok console.log(handle)
+        console.log(handle.xxx);
+      });
     }
   }
 
