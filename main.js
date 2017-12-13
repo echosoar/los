@@ -14,10 +14,11 @@
 let cluster = require('cluster');
 let os = require('os');
 let http = require('http');
+let net = require('net');
 let FunLosProcessUsage = require('./core/processUsage.js');
 let ClassLogger = require('./core/logger.js');
+let ClassSocket = require('./core/socket.js');
 let Utils = require('./core/utils.js');
-let TCP = process.binding('tcp_wrap').TCP;
 
 class Main {
   constructor(config) {
@@ -67,8 +68,6 @@ class Main {
         return;
     }
     
-    
-
     nowWorker.status = msg.type;
     nowWorker.lastUpdateTime = new Date() - 0;
   }
@@ -94,7 +93,8 @@ class Main {
 
   // 请求分发，选择最合适的子进程去执行
   
-  requestToChild(type, request, response) { 
+  requestToChild(type, socket, response) {
+    socket.pause(); // 暂停socket数据读取
     let retryCount = 0;
     let handle = this.httpServer;
     let workerObj = this.selectChild(retryCount, handle);
@@ -102,17 +102,16 @@ class Main {
     if (!workerObj) {
       this.logger.log('noUsageWorker');
 
-      response.writeHead(503, { Server: this.version });
-      response.end('503\nPowered by ' + this.version);
+      // response.writeHead(503, { Server: this.version });
+      // response.end('503\nPowered by ' + this.version);
     } else {
       this.logger.log('startChild', 'workid:' + workerObj.worker.id);
 
-      let data = this._execRequestToChildData(request);
-
       workerObj.worker.process.send({
-        type: 'net.Native',
+        type: 'connect',
+        uuid: Utils.randomId(),
         workid: workerObj.worker.id,
-      });
+      }, socket);
     }
   }
 
@@ -168,24 +167,18 @@ class Main {
     }
   }
 
-  // 将request中有用信息进行处理，然后返回一个数据对象，并生成唯一id，用来缓存响应对象权柄。
-  _execRequestToChildData(request) {
-    let data = {
-      id: Utils.randomId()
-    };
-
-    console.log(data.id)
-
-    return data;
+  // 启服务
+  startServer() {
+    this.startNetServer();
   }
 
-  // http服务
-  startHttpServer() {
-    this.httpServer = http.createServer(this.requestToChild.bind(this, 'http'));
-    this.httpServer.listen(this.config.httpPort);
-  }
+  // net 服务
+  startNetServer() {
+    this.netHttpServer = net.createServer();
+    this.netHttpServer.listen(this.config.httpPort);
+    this.netHttpServer.on('connection', this.requestToChild.bind(this, 'http'));
 
-  
+  }
 
   // 创建新的子线程
   _createNewChild() {
@@ -221,12 +214,12 @@ class Main {
       }
 
       this.startChildFinder();
-      this.startHttpServer();
+      this.startServer();
 
     } else {
       process.send({ type: 'start' }); // 子进程已开启，未运行
-      process.on('message', msg => {
-        
+      process.on('message', (msg, socket) => {
+        new ClassSocket(msg, socket);
       });
     }
   }
