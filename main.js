@@ -16,6 +16,7 @@ let os = require('os');
 let http = require('http');
 let FunLosProcessUsage = require('./core/processUsage.js');
 let ClassLogger = require('./core/logger.js');
+let Utils = require('./core/utils.js');
 let TCP = process.binding('tcp_wrap').TCP;
 
 class Main {
@@ -106,10 +107,12 @@ class Main {
     } else {
       this.logger.log('startChild', 'workid:' + workerObj.worker.id);
 
+      let data = this._execRequestToChildData(request);
+
       workerObj.worker.process.send({
         type: 'net.Native',
         workid: workerObj.worker.id,
-      },  handle);
+      });
     }
   }
 
@@ -165,11 +168,24 @@ class Main {
     }
   }
 
+  // 将request中有用信息进行处理，然后返回一个数据对象，并生成唯一id，用来缓存响应对象权柄。
+  _execRequestToChildData(request) {
+    let data = {
+      id: Utils.randomId()
+    };
+
+    console.log(data.id)
+
+    return data;
+  }
+
   // http服务
   startHttpServer() {
     this.httpServer = http.createServer(this.requestToChild.bind(this, 'http'));
     this.httpServer.listen(this.config.httpPort);
   }
+
+  
 
   // 创建新的子线程
   _createNewChild() {
@@ -206,12 +222,11 @@ class Main {
 
       this.startChildFinder();
       this.startHttpServer();
+
     } else {
       process.send({ type: 'start' }); // 子进程已开启，未运行
-      process.on('message', (msg, handle) => {
-        // handle.response.writeHead(200);
-        // handle.response.end('ok console.log(handle)
-        console.log(handle.xxx);
+      process.on('message', msg => {
+        
       });
     }
   }
