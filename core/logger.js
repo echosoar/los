@@ -14,7 +14,7 @@
     this.config = config;
   }
 
-  log(msg) {
+  log(msg, uuid) {
 
   }
 

@@ -45,7 +45,8 @@ class Main {
     return {
       childNum: os.cpus().length, // 子进程数量，默认为CPU核心数
       httpPort: 80, // 默认http服务端口
-      httpsPort: 443 // 默认https服务端口
+      httpsPort: 443, // 默认https服务端口
+      timeout: 500 // 默认超时时间
     };
   }
 
@@ -69,7 +70,7 @@ class Main {
     }
     
     nowWorker.status = msg.type;
-    nowWorker.lastUpdateTime = new Date() - 0;
+    nowWorker.lastUpdateTime = Utils.now();
   }
 
   // 子进程监控
@@ -87,7 +88,12 @@ class Main {
   // 子进程安全性校验，如果超时没有响应，那么自动kill掉然后重启服务
   childCheck(workerInfo) {
     if (workerInfo.status == 'exec') {
-      console.log(workerInfo.id);
+      let nowDate = Utils.now();
+      if (nowDate - workerInfo.lastUpdateTime < this.config.timeout) return;
+      // 下面是超时处理
+
+      this.logger.log('timeout', workerInfo.uuid);
+      this.errorResponse(408, 'timeout', socket);
     }
   }
 
@@ -98,18 +104,22 @@ class Main {
     let retryCount = 0;
     let handle = this.httpServer;
     let workerObj = this.selectChild(retryCount, handle);
+    
 
     if (!workerObj) {
       this.logger.log('noUsageWorker');
 
-      // response.writeHead(503, { Server: this.version });
-      // response.end('503\nPowered by ' + this.version);
+      this.errorResponse(503, 'no usage worker', socket);
+
     } else {
       this.logger.log('startChild', 'workid:' + workerObj.worker.id);
 
+      workerObj.handle = socket;
+      workerObj.uuid = Utils.uuId();
+
       workerObj.worker.process.send({
         type: 'connect',
-        uuid: Utils.randomId(),
+        uuid: workerObj.uuid,
         workid: workerObj.worker.id,
       }, socket);
     }
@@ -205,6 +215,12 @@ class Main {
     return thisWorker;
   }
 
+
+  // 错误响应
+  errorResponse(errorCode, body, handle) {
+
+  }
+
   // 初始化，创建主线程及子线程
   init() {
     if (cluster.isMaster) {
@@ -219,6 +235,7 @@ class Main {
     } else {
       process.send({ type: 'start' }); // 子进程已开启，未运行
       process.on('message', (msg, socket) => {
+        process.send({ type: 'exec' });
         new ClassSocket(msg, socket);
       });
     }

@@ -6,9 +6,13 @@
  */ 
 
  class Utils {
-  randomId() {
-    let date = new Date() - 0;
-    return date + '-' +  (Math.random() * date + '').replace('.', '-');
+
+  uuId() {
+    return this.now() + '-' +  (Math.random() * date + '').replace('.', '-');
+  }
+
+  now() {
+    return new Date() - 0;
   }
  }
 
