@@ -214,6 +214,7 @@ class Main {
   // 错误发生后应先把worker给干掉
   // 然后立即重启worker
   // 然后进行错误响应
+  // 关于错误与子进程的问题还需要再思考一些
   errorResponse(errorCode, body, socket, workerIndex) {
     console.log(errorCode)
 
