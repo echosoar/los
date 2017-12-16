@@ -76,8 +76,9 @@ class Main {
   // 子进程监控
   startChildFinder() {
 
-    this.workers.map(workerInfo => {
-      this.childCheck(workerInfo);
+    this.workers.map((workerInfo, index) => {
+      this.childCheck(workerInfo, index);
+
     });
 
     setTimeout(() => {
@@ -86,14 +87,14 @@ class Main {
   }
   
   // 子进程安全性校验，如果超时没有响应，那么自动kill掉然后重启服务
-  childCheck(workerInfo) {
+  childCheck(workerInfo, workerIndex) {
     if (workerInfo.status == 'exec') {
       let nowDate = Utils.now();
       if (nowDate - workerInfo.lastUpdateTime < this.config.timeout) return;
       // 下面是超时处理
 
       this.logger.log('timeout', workerInfo.uuid);
-      this.errorResponse(408, 'timeout', socket);
+      this.errorResponse(408, 'timeout', workerInfo.socket, workerIndex);
     }
   }
 
@@ -102,8 +103,7 @@ class Main {
   requestToChild(type, socket, response) {
     socket.pause(); // 暂停socket数据读取
     let retryCount = 0;
-    let handle = this.httpServer;
-    let workerObj = this.selectChild(retryCount, handle);
+    let workerObj = this.selectChild(retryCount);
     
 
     if (!workerObj) {
@@ -114,7 +114,7 @@ class Main {
     } else {
       this.logger.log('startChild', 'workid:' + workerObj.worker.id);
 
-      workerObj.handle = socket;
+      workerObj.socket = socket;
       workerObj.uuid = Utils.uuId();
 
       workerObj.worker.process.send({
@@ -134,7 +134,7 @@ class Main {
 
     后续可能会对此进行优化，如根据剩余可占用CPU和MEM来创建新的子进程等
   */
-  selectChild(retryCount, handle) {
+  selectChild(retryCount) {
     let workerPids = [];
     let workerPidsMap = {};
 
@@ -147,10 +147,7 @@ class Main {
       workerPidsMap[this.workers[i].worker.process.pid] = i;
 
       if (this.workers[i].status == 'starts') {
-        return {
-          worker: this.workers[i].worker,
-          handle
-        };
+        return this.workers[i];
       }
     }
 
@@ -162,10 +159,7 @@ class Main {
 
     if (usage && usage.length) {
       let usageIndex = workerPidsMap[usage[0].pid];
-      return {
-        worker: this.workers[usageIndex].worker,
-        handle
-      };
+      return this.workers[usageIndex];
     }
 
     if (retryCount >= 5) {
@@ -217,8 +211,23 @@ class Main {
 
 
   // 错误响应
-  errorResponse(errorCode, body, handle) {
+  // 错误发生后应先把worker给干掉
+  // 然后立即重启worker
+  // 然后进行错误响应
+  errorResponse(errorCode, body, socket, workerIndex) {
+    console.log(errorCode)
 
+    if (workerIndex != null) {
+      this.workers[workerIndex].worker.kill();
+      this.workers.splice(workerIndex, 1);
+      this._createNewChild();
+    }
+
+    try {
+      socket.write('Echo server\r\n');
+      socket.end();
+    } catch(e) {}
+   
   }
 
   // 初始化，创建主线程及子线程

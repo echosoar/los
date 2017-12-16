@@ -8,11 +8,12 @@
  class Utils {
 
   uuId() {
-    return this.now() + '-' +  (Math.random() * date + '').replace('.', '-');
+    let now = this.now();
+    return [now ,(Math.random() * now + '').split('.'), process.hrtime()].join('-');
   }
 
   now() {
-    return new Date() - 0;
+    return Date.now();
   }
  }
 
