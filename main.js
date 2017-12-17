@@ -15,21 +15,19 @@ let cluster = require('cluster');
 let os = require('os');
 let http = require('http');
 let net = require('net');
+let Base = require('./core/base.js');
 let FunLosProcessUsage = require('./core/processUsage.js');
-let ClassLogger = require('./core/logger.js');
 let ClassSocket = require('./core/socket.js');
-let Utils = require('./core/utils.js');
+let Response = require('./core/response.js');
 
-class Main {
+class Main extends Base {
   constructor(config) {
-    this.pwd = process.cwd();
+    super(config);
 
-    this.config = Object.assign(
+    this.addConfig([
       this._getDefaultConfig(),
-      this._getLocalConfig(),
-      config );
-
-    this.logger = new ClassLogger(this.config);
+      this._getLocalConfig()
+    ]);
 
     this._childFinderTimeout = 200; // 子进程监控间隔
 
@@ -70,7 +68,7 @@ class Main {
     }
     
     nowWorker.status = msg.type;
-    nowWorker.lastUpdateTime = Utils.now();
+    nowWorker.lastUpdateTime = this.utils.now();
   }
 
   // 子进程监控
@@ -89,7 +87,7 @@ class Main {
   // 子进程安全性校验，如果超时没有响应，那么自动kill掉然后重启服务
   childCheck(workerInfo, workerIndex) {
     if (workerInfo.status == 'exec') {
-      let nowDate = Utils.now();
+      let nowDate = this.utils.now();
       if (nowDate - workerInfo.lastUpdateTime < this.config.timeout) return;
       // 下面是超时处理
 
@@ -115,7 +113,7 @@ class Main {
       this.logger.log('startChild', 'workid:' + workerObj.worker.id);
 
       workerObj.socket = socket;
-      workerObj.uuid = Utils.uuId();
+      workerObj.uuid = this.utils.uuId();
 
       workerObj.worker.process.send({
         type: 'connect',
@@ -225,8 +223,9 @@ class Main {
     }
 
     try {
-      socket.write('Echo server\r\n');
-      socket.end();
+      (new Response({
+        socket
+      })).out(errorCode, {}, body);
     } catch(e) {}
    
   }
