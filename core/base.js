@@ -10,13 +10,19 @@ let Utils = require('./utils.js');
 class Base {
   constructor(props) {
 
+    this.version = 'LOS V0.0.1';
+    
     this.pwd = process.cwd();
 
     this.config = Object.assign({}, props);
 
     this.utils = Utils;
-    
+
     this.logger = new ClassLogger(this.config);
+
+    this.init && this.init();
+    
+    this.main && this.main();
 
   }
 

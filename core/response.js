@@ -5,9 +5,10 @@
  * 
  */
 
- const Base = require('./base.js');
+const Base = require('./base.js');
 
- class Response extends Base {
+class Response extends Base {
+
   constructor(config) {
     super(config);
   }
@@ -32,12 +33,16 @@
   }
 
   /**
-   * @params data 数据
+   * @params ...this.out
    * @params callback jsonp回调
    */
-  toJsonp(data, callback) {
+  jsonp(status, headers, body, callback) {
     callback = callback || 'callback';
-    return [';', callback, '(', JSON.stringify(data), ');'].join('');
+    this.out(
+      status,
+      headers,
+      [';', callback, '(', JSON.stringify(body), ');'].join('')
+    );
   }
 
 }

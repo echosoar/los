@@ -23,19 +23,6 @@ let Response = require('./core/response.js');
 class Main extends Base {
   constructor(config) {
     super(config);
-
-    this.addConfig([
-      this._getDefaultConfig(),
-      this._getLocalConfig()
-    ]);
-
-    this._childFinderTimeout = 200; // 子进程监控间隔
-
-    this.workers = [];
-
-    this.version = 'LOS V0.0.1';
-
-    this.init();
   }
 
   // 获取默认配置信息
@@ -214,8 +201,6 @@ class Main extends Base {
   // 然后进行错误响应
   // 关于错误与子进程的问题还需要再思考一些
   errorResponse(errorCode, body, socket, workerIndex) {
-    console.log(errorCode)
-
     if (workerIndex != null) {
       this.workers[workerIndex].worker.kill();
       this.workers.splice(workerIndex, 1);
@@ -224,14 +209,26 @@ class Main extends Base {
 
     try {
       (new Response({
-        socket
+        socket,
       })).out(errorCode, {}, body);
     } catch(e) {}
    
   }
 
-  // 初始化，创建主线程及子线程
+  // 初始化
   init() {
+    this.addConfig([
+      this._getDefaultConfig(),
+      this._getLocalConfig()
+    ]);
+
+    this._childFinderTimeout = 200; // 子进程监控间隔
+
+    this.workers = [];
+  }
+
+  // 主方法，创建主线程及子线程
+  main() {
     if (cluster.isMaster) {
       // 主线程用于创建和保活以及超时中断
       for (let i = 0; i < this.config.childNum; i++) {
