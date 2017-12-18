@@ -13,7 +13,6 @@
 
 let cluster = require('cluster');
 let os = require('os');
-let http = require('http');
 let net = require('net');
 let Base = require('./core/base.js');
 let FunLosProcessUsage = require('./core/processUsage.js');
