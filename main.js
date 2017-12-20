@@ -30,7 +30,7 @@ class Main extends Base {
       childNum: os.cpus().length, // 子进程数量，默认为CPU核心数
       httpPort: 80, // 默认http服务端口
       httpsPort: 443, // 默认https服务端口
-      timeout: 100 // 默认超时时间
+      timeout: 500 // 默认超时时间
     };
   }
 
@@ -75,16 +75,14 @@ class Main extends Base {
       let nowDate = this.utils.now();
       if (nowDate - workerInfo.lastUpdateTime < this.config.timeout) return;
       // 下面是超时处理
-      
       this.logger.log(408, workerInfo.uuid);
-      this.errorResponse(403, null, workerInfo.socket, workerIndex);
+      this.errorResponse(408, null, null, workerIndex);
     }
   }
 
   // 请求分发，选择最合适的子进程去执行
   
   requestToChild(type, socket, response) {
-   
     socket.pause(); // 暂停socket数据读取
     
     let retryCount = 0;
@@ -193,22 +191,27 @@ class Main extends Base {
     return thisWorker;
   }
 
-
-  // 错误响应
-  // 错误发生后应先把worker给干掉
-  // 然后立即重启worker
-  // 然后进行错误响应
-  // 关于错误与子进程的问题还需要再思考一些
+  /**
+   * 错误响应
+   * 需要判断socket是否已发送至子进程，由于socket在进程间传递时原来的socket是会被close的
+   * 因此对于已发送到子进程的socket，直接干掉这个进程，然后尝试性向子进程发送一个错误消息
+   * 对于未发送至子进程的socket，在主进程进行响应
+   */
   errorResponse(errorCode, body, socket, workerIndex) {
     
-
-    try {
-      (new Response({
-        socket,
-      })).out(errorCode, {}, body);
-    } catch(e) {}
-
+    if (socket) {
+      try {
+        (new Response({
+          socket,
+        })).out(errorCode, {}, body);
+      } catch(e) {}
+    }
+    
     if (workerIndex != null) {
+      this.workers[workerIndex].worker.send({
+        type: 'mainError',
+        status: errorCode
+      });
       this.workers[workerIndex].worker.kill();
       this.workers.splice(workerIndex, 1);
       this._createNewChild();
@@ -219,8 +222,8 @@ class Main extends Base {
   // 初始化
   init() {
     this.addConfig([
-      this._getDefaultConfig(),
-      this._getLocalConfig()
+      this._getLocalConfig(),
+      this._getDefaultConfig()
     ]);
 
     this._childFinderTimeout = 200; // 子进程监控间隔
@@ -240,14 +243,24 @@ class Main extends Base {
       this.startServer();
 
     } else {
+      let socketHandle = null;
       process.send({ type: 'start' }); // 子进程已开启，未运行
       process.on('message', (msg, socket) => {
-        process.send({ type: 'exec' });
-        new ClassSocket(msg, socket);
+        if (socket) socketHandle = socket;
+        switch(msg.type) {
+          case 'connect':
+            process.send({ type: 'exec' });
+            new ClassSocket(msg, socket);
+            break;
+          case 'mainError':
+            (new Response({
+              socket: socketHandle,
+            })).out(msg.status, {});
+            break;
+        }
       });
     }
   }
-
 }
 
 

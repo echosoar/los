@@ -12,7 +12,6 @@ class Response extends Base {
 
   constructor(config) {
     super(config);
-
   }
 
 
@@ -30,13 +29,11 @@ class Response extends Base {
   out(status, headers, body) {
     headers = headers || {};
     body = body || '';
-
+    
     if (!this.config || !this.config.socket) return;
-
     this._writeHead(status, {
       'Content-Type': 'text/html'
     });
-
     this._writeBody(body);
   }
 
@@ -67,25 +64,15 @@ class Response extends Base {
   // 写响应体
   _writeBody(body) {
     // 合并头信息
-
-    console.log("socket handle s", this.config.socket._handle, this.config.socket.writable)
-
     this.config.socket.write(
-      Buffer.from(this._bufferHeadString.join('\r\n') + '\r\n', 'utf8'),
-      (res) => {
-        console.log("----", res)
-      }
+      Buffer.from(this._bufferHeadString.join('\r\n') + '\r\n', 'utf8')
     );
     this.config.socket.write(
-      Buffer.from(body, 'utf8'),
-      (res) => {
-        console.log("----")
-      }
+      Buffer.from(body, 'utf8')
     );
     
     this.config.socket.end();
   }
-
 }
 
 module.exports = Response;

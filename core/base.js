@@ -28,7 +28,7 @@ class Base {
 
   addConfig(configs) {
     configs.map(config => {
-      this.config = Object.assign(this.config, config);
+      this.config = Object.assign(config || {}, this.config);
     });
   }
 }
