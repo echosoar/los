@@ -5,14 +5,14 @@
  * 作用:
  * 解析socket，生成request和response对象
  */ 
-
+let Response = require('./response.js');
 class Socket {
   
   constructor(workerInfo, socketHandle) {
     this.workerInfo = workerInfo;
     this.socketHandle = socketHandle;
 
-    this.readData().then( data => {
+    this.readData().then(data => {
       console.log("child data", data);
     });
   }

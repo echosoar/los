@@ -30,7 +30,7 @@ class Main extends Base {
       childNum: os.cpus().length, // 子进程数量，默认为CPU核心数
       httpPort: 80, // 默认http服务端口
       httpsPort: 443, // 默认https服务端口
-      timeout: 500 // 默认超时时间
+      timeout: 100 // 默认超时时间
     };
   }
 
@@ -62,7 +62,6 @@ class Main extends Base {
 
     this.workers.map((workerInfo, index) => {
       this.childCheck(workerInfo, index);
-
     });
 
     setTimeout(() => {
@@ -76,24 +75,25 @@ class Main extends Base {
       let nowDate = this.utils.now();
       if (nowDate - workerInfo.lastUpdateTime < this.config.timeout) return;
       // 下面是超时处理
-
-      this.logger.log('timeout', workerInfo.uuid);
-      this.errorResponse(408, 'timeout', workerInfo.socket, workerIndex);
+      
+      this.logger.log(408, workerInfo.uuid);
+      this.errorResponse(403, null, workerInfo.socket, workerIndex);
     }
   }
 
   // 请求分发，选择最合适的子进程去执行
   
   requestToChild(type, socket, response) {
+   
     socket.pause(); // 暂停socket数据读取
+    
     let retryCount = 0;
     let workerObj = this.selectChild(retryCount);
     
-
     if (!workerObj) {
       this.logger.log('noUsageWorker');
 
-      this.errorResponse(503, 'no usage worker', socket);
+      this.errorResponse(503, null, socket);
 
     } else {
       this.logger.log('startChild', 'workid:' + workerObj.worker.id);
@@ -200,17 +200,19 @@ class Main extends Base {
   // 然后进行错误响应
   // 关于错误与子进程的问题还需要再思考一些
   errorResponse(errorCode, body, socket, workerIndex) {
-    if (workerIndex != null) {
-      this.workers[workerIndex].worker.kill();
-      this.workers.splice(workerIndex, 1);
-      this._createNewChild();
-    }
+    
 
     try {
       (new Response({
         socket,
       })).out(errorCode, {}, body);
     } catch(e) {}
+
+    if (workerIndex != null) {
+      this.workers[workerIndex].worker.kill();
+      this.workers.splice(workerIndex, 1);
+      this._createNewChild();
+    }
    
   }
 

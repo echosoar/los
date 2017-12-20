@@ -6,11 +6,20 @@
  */
 
 const Base = require('./base.js');
+const HttpCode = require('./httpCode.js');
 
 class Response extends Base {
 
   constructor(config) {
     super(config);
+
+  }
+
+
+  init() {
+    this._bufferHeadString = [];
+    this._bufferHead = null;
+    this._bufferBody = null;
   }
 
   /**
@@ -24,12 +33,11 @@ class Response extends Base {
 
     if (!this.config || !this.config.socket) return;
 
-    console.log(status, headers, body);
+    this._writeHead(status, {
+      'Content-Type': 'text/html'
+    });
 
-    
-
-    this.config.socket.write(body);
-    this.config.socket.end();
+    this._writeBody(body);
   }
 
   /**
@@ -43,6 +51,39 @@ class Response extends Base {
       headers,
       [';', callback, '(', JSON.stringify(body), ');'].join('')
     );
+  }
+
+  // 写响应头
+  _writeHead(status, head) {
+    let EnStatus = HttpCode[status] || 'LOS ERROR';
+    this._bufferHeadString.push('HTTP/1.1 ' + status + ' ' + EnStatus);
+    if (!head) return;
+
+    Object.keys(head).map(key => {
+      this._bufferHeadString.push(key + ': ' + head[key]);
+    });
+  }
+
+  // 写响应体
+  _writeBody(body) {
+    // 合并头信息
+
+    console.log("socket handle s", this.config.socket._handle, this.config.socket.writable)
+
+    this.config.socket.write(
+      Buffer.from(this._bufferHeadString.join('\r\n') + '\r\n', 'utf8'),
+      (res) => {
+        console.log("----", res)
+      }
+    );
+    this.config.socket.write(
+      Buffer.from(body, 'utf8'),
+      (res) => {
+        console.log("----")
+      }
+    );
+    
+    this.config.socket.end();
   }
 
 }
