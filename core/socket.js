@@ -12,11 +12,14 @@ class Socket {
     this.workerInfo = workerInfo;
     this.socketHandle = socketHandle;
 
+    this.request = {};
+
     this.readData().then(data => {
-      console.log("child data", data);
+      this.request = this._execRequestDate(data);
     });
   }
 
+  // 读取socket数据
   readData() {
     return new Promise((resolve, reject) => {
       this.socketHandle.on("data", data => {
@@ -24,6 +27,12 @@ class Socket {
       });
       this.socketHandle.resume();
     });
+  }
+
+  // 解析数据
+  _execRequestDate(data) {
+    let dataSplited = data.split('\r\n');
+    console.log(dataSplited);
   }
 }
 

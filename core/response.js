@@ -65,7 +65,7 @@ class Response extends Base {
   _writeBody(body) {
     // 合并头信息
     this.config.socket.write(
-      Buffer.from(this._bufferHeadString.join('\r\n') + '\r\n', 'utf8')
+      Buffer.from(this._bufferHeadString.join('\r\n') + '\r\n\r\n', 'utf8')
     );
     this.config.socket.write(
       Buffer.from(body, 'utf8')
