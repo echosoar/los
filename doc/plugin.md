@@ -34,8 +34,7 @@ LOS支持在各个事件节点上面通过插件处理请求，并且LOS的主�
 #### requestInMaster 请求进入主进程
 | 入参  | 参数类型  | 参数意义  |
 | ------------ | ------------ | ------------ |
-| request  | Object  | 请求对象  |
-| response  | Object  | 响应对象  |
+| socket  | Socket Object  | Socket对象  |
 | los | Object | LOS内置对象 |
 
 |  出参 | 参数类型  | 参数意义  |

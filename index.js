@@ -3,6 +3,12 @@
 let program = require('commander');
 let LOS = require('./main.js');
 
-new LOS({});
+let TestPlugin = require('./test/testPlugin');
+
+new LOS({
+  plugins: [
+    TestPlugin
+  ]
+});
 
 

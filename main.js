@@ -15,6 +15,7 @@ let cluster = require('cluster');
 let os = require('os');
 let net = require('net');
 let Base = require('./core/base.js');
+let PluginLoader = require('./core/pluginLoader.js');
 let FunLosProcessUsage = require('./core/processUsage.js');
 let ClassSocket = require('./core/socket.js');
 let Response = require('./core/response.js');
@@ -30,7 +31,8 @@ class Main extends Base {
       childNum: os.cpus().length, // 子进程数量，默认为CPU核心数
       httpPort: 80, // 默认http服务端口
       httpsPort: 443, // 默认https服务端口
-      timeout: 500 // 默认超时时间
+      timeout: 500, // 默认超时时间
+      plugins: [] // 默认插件
     };
   }
 
@@ -226,9 +228,12 @@ class Main extends Base {
       this._getDefaultConfig()
     ]);
 
-    this._childFinderTimeout = 200; // 子进程监控间隔
+    if (cluster.isMaster) {
+      this._childFinderTimeout = 200; // 子进程监控间隔
+      this.workers = [];
+    }
 
-    this.workers = [];
+    this.plugins = new PluginLoader(this.config.plugins, cluster.isMaster);
   }
 
   // 主方法，创建主线程及子线程
@@ -241,6 +246,7 @@ class Main extends Base {
 
       this.startChildFinder();
       this.startServer();
+
 
     } else {
       let socketHandle = null;
