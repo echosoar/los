@@ -84,8 +84,11 @@ class Main extends Base {
 
   // 请求分发，选择最合适的子进程去执行
   
-  requestToChild(type, socket, response) {
-    socket.pause(); // 暂停socket数据读取
+  requestToChild(type, socket) {
+    // 暂停socket数据读取
+    socket.pause();
+    // 触发请求进入主进程插件节点
+    if (this.plugins.emit('requestInMaster', socket)) return;
     
     let retryCount = 0;
     let workerObj = this.selectChild(retryCount);

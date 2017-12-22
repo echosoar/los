@@ -1,8 +1,13 @@
 module.exports = {
-  name: 'testPlugin',
-  register: {
-    'requestInMaster': (socket, los) => {
-      console.log("plugin exec");
-    }
+  info: {
+    name: 'testPlugin',
+    version: '0.0.1'
+  },
+  register: bind => {
+
+    bind('requestInMaster', (socket, los, resolve) => {
+      console.log("testPlugin");
+    });
+
   }
 }

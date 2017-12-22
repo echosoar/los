@@ -5,6 +5,7 @@
  * 
  */
 let ClassLogger = require('./logger.js');
+let cluster = require('cluster');
 let Utils = require('./utils.js');
 
 class Base {
@@ -22,7 +23,7 @@ class Base {
 
     this.init && this.init();
     
-    this.main && this.main();
+    this.main && this.main();    
 
   }
 

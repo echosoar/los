@@ -3,14 +3,7 @@
  */
 
 const Base = require('./base.js');
-
-const MasterPoint = [
-  'requestInMaster'
-];
-
-const ChildPoint = [
-  
-];
+const PluginRegister = require('./pluginRegister.js');
 
 class PluginLoader extends Base {
   constructor(plugins, isMaster) {
@@ -20,53 +13,47 @@ class PluginLoader extends Base {
     
     this.isMaster = isMaster;
 
-    this.allPoint = isMaster ? MasterPoint : ChildPoint;
-
     this.pluginHandle = {};
 
     this.load();
   }
 
+  // 绑定事件触发点
+  on(pluginInfo, eventType, doing) {
+    // 当前点不存在
+    if (!this['_exec_' + eventType]) return false;
+
+    if (!this.pluginHandle[eventType]) this.pluginHandle[eventType] = [];
+
+    this.pluginHandle[eventType].push({
+      info: pluginInfo,
+      doing
+    });
+
+    return true;
+  }
+
   // 事件发生
-  emit(eventType) {
-    if (!pluginHandle[eventType]) return this.response('noPlugin');
-
-    let plugin = pluginHandle[eventType];
-
-    for (let pluginIndex = 0, pluginSize = plugin.length; pluginIndex < pluginSize; pluginIndex ++) {
-      let data = plugin[pluginIndex].doing();
-      if (data) return this.response('success', plugin[pluginIndex].name, data);
-    }
-
-    return this.response('noPlugin');
+  emit(eventType, ...Args) {
+    if (!this['_exec_' + eventType] || !this.pluginHandle[eventType]) return false;
+    return this['_exec_' + eventType](...Args);
   }
 
   // 加载插件
   load() {
+    let register = new PluginRegister(this.on.bind(this));
     this.plugins && this.plugins.map(plugin => {
-      Object.keys(plugin.register || {}).map(point => {
-
-        if (this.allPoint.indexOf(point) == -1) return;
-
-        if (!this.pluginHandle[point]) {
-          this.pluginHandle[point] = [];
-        }
-        this.pluginHandle[point].push({
-          name: plugin.name,
-          doing: plugin.register[point]
-        });
-      });
+      plugin.register && plugin.register(register.on.bind(register, plugin.info));
     });
   }
 
-  // 插件响应
-  response(type, pluginName, data) {
-    return {
-      type,
-      pluginName,
-      data
-    };
+  // 请求进入主进程
+  _exec_requestInMaster(socket) {
+    this.pluginHandle.requestInMaster.map(plugin => {
+      plugin.doing(socket);
+    });
   }
+
 }
 
 module.exports = PluginLoader;
