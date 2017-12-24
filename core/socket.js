@@ -11,11 +11,10 @@ class Socket {
   constructor(workerInfo, socketHandle) {
     this.workerInfo = workerInfo;
     this.socketHandle = socketHandle;
-
     this.request = {};
 
     this.readData().then(data => {
-      this.request = this._execRequestDate(data);
+      this.request = this._execRequestData(data);
     });
   }
 
@@ -30,9 +29,40 @@ class Socket {
   }
 
   // 解析数据
-  _execRequestDate(data) {
-    let dataSplited = data.split('\r\n');
-    console.log(dataSplited);
+  _execRequestData(data) {
+
+    let headerEndIndex = data.indexOf('\r\n\r\n');
+
+    let header = {
+      ipv6: this.socketHandle.remoteAddress,
+      ipv4: this._resolveipv4(this.socketHandle.remoteAddress)
+    };
+    
+    data.slice(0, headerEndIndex).split('\r\n').map((headerLine, lineIndex) => {
+      if (lineIndex == 0) {
+        this._execFirstLine(headerLine, header);
+      } else {
+        let headerData = headerLine.split(/\s*:\s*/);
+        header[headerData[0]] = headerData.slice(1).join(':');
+      }
+    });
+
+    let body = data.slice(headerEndIndex + 4);
+    return {
+      header,
+      body
+    };
+  }
+
+  // 解析http第一行数据
+  _execFirstLine(headerObj, line) {
+    
+  }
+
+  // 解析ipv6
+  _resolveipv4(ipv6) {
+    if (/::ffff/.test(ipv6)) return ipv6.replace('::ffff:', '');
+    return null;
   }
 }
 
