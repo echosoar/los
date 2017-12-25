@@ -38,7 +38,6 @@ class Main extends Base {
 
   // 获取本地配置信息
   _getLocalConfig() {
-
   }
 
   // 接受子进程消息
@@ -85,9 +84,12 @@ class Main extends Base {
   // 请求分发，选择最合适的子进程去执行
   
   requestToChild(type, socket) {
+
+    
     // 暂停socket数据读取
     socket.pause();
     // 触发请求进入主进程插件节点
+    console.log("emit reim")
     if (this.plugins.emit('requestInMaster', socket)) return;
     
     let retryCount = 0;
@@ -215,8 +217,10 @@ class Main extends Base {
     if (workerIndex != null) {
       this.workers[workerIndex].worker.send({
         type: 'mainError',
-        status: errorCode
+        status: errorCode,
+        uuid: this.workers[workerIndex].uuid
       });
+
       this.workers[workerIndex].worker.kill();
       this.workers.splice(workerIndex, 1);
       this._createNewChild();
@@ -252,18 +256,22 @@ class Main extends Base {
 
 
     } else {
-      let socketHandle = null;
+      let socketHandle = {};
       process.send({ type: 'start' }); // 子进程已开启，未运行
       process.on('message', (msg, socket) => {
-        if (socket) socketHandle = socket;
+        console.log(msg)
+        if (socket) socketHandle[msg.uuid] = socket;
         switch(msg.type) {
           case 'connect':
             process.send({ type: 'exec' });
-            new ClassSocket(msg, socket);
+            try {
+              new ClassSocket(msg, socket);
+            } catch(e) {}
+            
             break;
           case 'mainError':
             (new Response({
-              socket: socketHandle,
+              socket: socketHandle[msg.uuid],
             })).out(msg.status, {});
             break;
         }
